@@ -6,9 +6,9 @@ const { calculatePagination, calculateSkips } = require('../utils/helpers');
 exports.getAuthorLoggedInProcess = async (req, res) => {
     if (!req.user) return res.status(200).json(null);
 
-    const { id } = req.user;
+    const { id, role } = req.user;
     const user = await Author.findOne({ userId: id });
-    res.status(200).json(user);
+    res.status(200).json({ ...user._doc, role });
 };
 
 exports.getAuthorProjectsProcess = async (req, res) => {

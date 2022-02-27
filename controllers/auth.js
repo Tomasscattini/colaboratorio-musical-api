@@ -10,19 +10,19 @@ const { deconstructFullName } = require('../utils/helpers');
 exports.loginProcess = (req, res, next) => {
     passport.authenticate('local', (err, user, failureDetails) => {
         if (err) {
-            return res.status(500).json({ message: 'Something went wrong authenticating user' });
+            return res.status(500).json({ message: 'Something went wrong authenticating user', type: 'server' });
         }
         if (!user) {
-            return res.status(401).json(failureDetails);
+            return res.status(401).json({ ...failureDetails, type: 'all' });
         }
 
         req.login(user, async (err) => {
             if (err) {
-                return res.status(500).json({ message: 'Something went wrong authenticating user' });
+                return res.status(500).json({ message: 'Something went wrong authenticating user', type: 'server' });
             }
-            const { id } = user;
+            const { id, role } = user;
             const author = await Author.findOne({ userId: id });
-            res.status(200).json(author);
+            res.status(200).json({ ...author?._doc, role });
         });
     })(req, res, next);
 };
@@ -31,13 +31,15 @@ exports.signupProcess = async (req, res) => {
     const { email, fullName, password } = req.body;
     if (!email || !password || !fullName) {
         return res.status(406).json({
-            message: 'Indicate email, password and full name'
+            message: 'Indicate email, password and full name',
+            type: 'data'
         });
     }
     const user = await User.findOne({ email });
     if (user) {
         return res.status(406).json({
-            message: 'Username already exist'
+            message: 'Username already exist',
+            type: 'email'
         });
     }
     const salt = bcrypt.genSaltSync(12);
@@ -46,18 +48,18 @@ exports.signupProcess = async (req, res) => {
         email,
         password: hashPass
     });
-    const userId = authUser._id.toString();
+    const userId = authUser?._id?.toString();
 
     const { firstName, lastName } = deconstructFullName(fullName);
 
-    await Author.create({
+    const newAuthor = await Author.create({
         email,
         userId,
         firstName,
         lastName
     });
     // await confirmationEmail(email, id);
-    res.status(201).json({ message: 'User successfully created' });
+    res.status(201).json({ ...newAuthor?._doc, role: authUser?.role });
 };
 
 // exports.confirmSignupProcess = async (req, res, next) => {
@@ -74,9 +76,9 @@ exports.changePasswordProcess = async (req, res) => {
     let { password } = await User.findById(id);
     const { newPassword, oldPassword } = req.body;
     if (!oldPassword || !newPassword) {
-        return res.status(400).json({ message: 'Specify your current password and a new one' });
+        return res.status(400).json({ message: 'Specify your current password and a new one', type: 'password' });
     } else if (!bcrypt.compareSync(oldPassword, password)) {
-        return res.status(400).json({ message: 'Wrong password' });
+        return res.status(400).json({ message: 'Wrong password', type: 'oldPassword' });
     } else {
         const salt = bcrypt.genSaltSync(12);
         const hashPass = bcrypt.hashSync(newPassword, salt);
@@ -95,7 +97,7 @@ exports.deleteAccountProcess = async (req, res) => {
     const { deletedata } = req.query;
 
     const deletedUser = await User.findByIdAndDelete(authUserId);
-    if (!deletedUser) res.status(404).json({ message: 'User not found' });
+    if (!deletedUser) res.status(404).json({ message: 'User not found', type: 'data' });
 
     if (deletedata) {
         const deletedAuthor = await Author.findOneAndDelete({ userId: deletedUser.id });

@@ -15,9 +15,9 @@ passport.use(
         async (email, password, done) => {
             try {
                 const user = await User.findOne({ email });
-                if (!user) return done(null, false, { message: 'Incorrect Email or Password' });
+                if (!user) return done(null, false, { message: 'Incorrect Email or Password', type: 'all' });
                 if (!compareSync(password, user.password))
-                    return done(null, false, { message: 'Incorrect Email or Password' });
+                    return done(null, false, { message: 'Incorrect Email or Password', type: 'all' });
                 done(null, user);
             } catch (error) {
                 console.log(error);

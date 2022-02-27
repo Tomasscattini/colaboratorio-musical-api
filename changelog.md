@@ -6,3 +6,4 @@
 -   Feature: Update CRUD operations.
 -   Feature: Add delete account.
 -   Feature: Implement pagination.
+-   Feature: Return author and user role on Login and Signup.
