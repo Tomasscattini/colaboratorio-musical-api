@@ -1,7 +1,10 @@
 const bcrypt = require('bcrypt');
+const Author = require('../models/Author');
 const User = require('../models/User');
 const passport = require('../config/passport');
-const { emailConfirmacion } = require('../config/nodemailer');
+// const { confirmationEmail } = require('../config/nodemailer');
+
+const { deconstructFullName } = require('../utils/helpers');
 
 exports.loginProcess = (req, res, next) => {
     passport.authenticate('local', (err, user, failureDetails) => {
@@ -12,91 +15,76 @@ exports.loginProcess = (req, res, next) => {
             return res.status(401).json(failureDetails);
         }
 
-        req.login(user, (err) => {
+        req.login(user, async (err) => {
             if (err) {
                 return res.status(500).json({ message: 'Something went wrong authenticating user' });
             }
-            user.password = null;
-            res.status(200).json(user);
+            const { id } = user;
+            const author = await Author.findOne({ userId: id });
+            res.status(200).json(author);
         });
     })(req, res, next);
 };
 
 exports.signupProcess = async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email, fullName, password } = req.body;
+    if (!email || !password || !fullName) {
         return res.status(406).json({
-            message: 'Indicate email and password'
+            message: 'Indicate email, password and full name'
         });
     }
     const user = await User.findOne({ email });
     if (user) {
         return res.status(406).json({
-            message: 'Error with username'
+            message: 'Username already exist'
         });
     }
     const salt = bcrypt.genSaltSync(12);
     const hashPass = bcrypt.hashSync(password, salt);
-    const newUser = await User.create({
-        username: email,
+    const authUser = await User.create({
         email,
         password: hashPass
     });
-    const id = newUser._id.toString();
-    await emailConfirmacion(email, id);
+    const userId = authUser._id.toString();
+
+    const { firstName, lastName } = deconstructFullName(fullName);
+
+    await Author.create({
+        email,
+        userId,
+        firstName,
+        lastName
+    });
+    // await confirmationEmail(email, id);
     res.status(201).json({ message: 'User created' });
 };
 
-exports.confirmSignup = async (req, res, next) => {
-    const { email, id } = req.params;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'user not found' });
-    if (id !== user._id.toString()) return res.status(400).json({ message: 'Confirm your email' });
-    await User.findByIdAndUpdate(user._id, { confirmed: true }, { new: true });
-    res.redirect(process.env.FRONTENDPOINT + '/confirmed');
-};
+// exports.confirmSignupProcess = async (req, res, next) => {
+//     const { email, id } = req.params;
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ message: 'user not found' });
+//     if (id !== user._id.toString()) return res.status(400).json({ message: 'Confirm your email' });
+//     await User.findByIdAndUpdate(user._id, { confirmed: true }, { new: true });
+//     res.redirect(process.env.FRONTENDPOINT + '/confirmed');
+// };
 
-exports.editProcess = async (req, res) => {
-    let pass;
-    const id = req.params.id;
+exports.changePasswordProcess = async (req, res) => {
+    const id = req.user.id;
     let { password } = await User.findById(id);
-    const { username, email, role, confirm, oldPassword } = req.body;
-    if (!confirm) {
-        pass = password;
-        const editedUser = await User.findByIdAndUpdate(id, { username, email, password: pass, role }, { new: true });
-        return res.status(202).json({ message: 'User updated', editedUser });
+    const { newPassword, oldPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: 'Specify your current password and a new one' });
     } else if (!bcrypt.compareSync(oldPassword, password)) {
         return res.status(400).json({ message: 'Wrong password' });
     } else {
         const salt = bcrypt.genSaltSync(12);
-        const hashPass = bcrypt.hashSync(confirm, salt);
-        const editedUser = await User.findByIdAndUpdate(
-            id,
-            { username, email, password: hashPass, role },
-            { new: true }
-        );
-        return res.status(202).json({ message: 'User updated', editedUser });
+        const hashPass = bcrypt.hashSync(newPassword, salt);
+        await User.findByIdAndUpdate(id, { password: hashPass });
+        return res.status(202).json({ message: 'Password succesfully updated' });
     }
-};
-
-exports.uploadProcess = async (req, res) => {
-    const id = req.params.id;
-    const { image } = req.body;
-    const editedUser = await User.findByIdAndUpdate(id, { image }, { new: true });
-    return res.status(202).json({ message: 'User updated', editedUser });
 };
 
 exports.logoutProcess = (req, res) => {
     req.logout();
     res.status(200).json({ message: 'User logged out' });
-};
-
-exports.loggedinProcess = async (req, res) => {
-    if (req.user) {
-        const { id } = req.user;
-        const user = await User.findById(id).populate({ path: 'artWork courses streamings cart artistId' });
-        return res.status(200).json(user);
-    } else {
-        return res.status(200).json(null);
-    }
 };

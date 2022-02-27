@@ -5,19 +5,15 @@ const { isAuth, catchErrs } = require('../middlewares');
 const {
     loginProcess,
     signupProcess,
-    confirmSignup,
-    editProcess,
-    uploadProcess,
-    logoutProcess,
-    loggedinProcess
+    // confirmSignupProcess,
+    changePasswordProcess,
+    logoutProcess
 } = require('../controllers/auth');
 
 router.post('/login', loginProcess);
 router.post('/signup', signupProcess);
-router.get('/confirm/:email/:id', catchErrs(confirmSignup));
-router.post('/edit/:id', isAuth, catchErrs(editProcess));
-router.post('/upload-photo/:id', isAuth, catchErrs(uploadProcess));
+// router.get('/confirm/:email/:id', catchErrs(confirmSignupProcess));
+router.post('/changePassword', isAuth, catchErrs(changePasswordProcess));
 router.get('/logout', logoutProcess);
-router.get('/loggedin', loggedinProcess);
 
 module.exports = router;

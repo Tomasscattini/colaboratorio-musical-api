@@ -3,16 +3,33 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
     {
+        addedBy: String,
         email: String,
-        password: String,
-        confirmed: {
+        isLocked: {
             type: Boolean,
             default: false
+        },
+        isValidated: {
+            type: Boolean,
+            default: true
+        },
+        language: {
+            type: String,
+            default: 'es'
+        },
+        password: String,
+        passwordResetRequests: {
+            type: Number,
+            default: 0
         },
         role: {
             type: String,
             enum: ['admin', 'user'],
             default: 'user'
+        },
+        wrongPasswordCount: {
+            type: Number,
+            default: 0
         }
     },
     {

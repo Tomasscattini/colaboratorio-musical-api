@@ -6,7 +6,8 @@ let transporter = nodemailer.createTransport({
         pass: process.env.GMAIL_PASS
     }
 });
-exports.emailConfirmacion = (email, id) => {
+
+exports.confirmationEmail = (email, id) => {
     const url = `https://colaboratorio-musical.herokuapp.com/auth/confirm/${email}/${id}`;
 
     return transporter.sendMail({
