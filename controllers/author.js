@@ -1,17 +1,30 @@
 const Author = require('../models/Author');
+const Project = require('../models/Project');
+
+const { calculatePagination, calculateSkips } = require('../utils/helpers');
 
 exports.getAuthorLoggedInProcess = async (req, res) => {
     if (!req.user) return res.status(200).json(null);
 
     const { id } = req.user;
     const user = await Author.findOne({ userId: id });
-    return res.status(200).json(user);
+    res.status(200).json(user);
 };
 
 exports.getAuthorProjectsProcess = async (req, res) => {
+    const { pageSize = 10, currentPage = 1 } = req.query;
+    const skips = calculateSkips(parseInt(pageSize), parseInt(currentPage));
+
     const { id } = req.user;
-    const user = await Author.findOne({ userId: id }).populate({ path: 'projectsOwned' });
-    return res.status(200).json(user);
+    const { id: authorId } = await Author.findOne({ userId: id });
+    if (!authorId) return res.status(404).json({ message: 'Author not found' });
+
+    const totals = await Project.countDocuments({ authorId });
+    const projects = await Project.find({ authorId }).skip(skips).limit(parseInt(pageSize));
+
+    const pagination = calculatePagination(parseInt(pageSize), parseInt(currentPage), parseInt(totals));
+
+    res.status(200).json({ documents: projects, totals, pagination });
 };
 
 exports.editProfileImageProcess = async (req, res) => {

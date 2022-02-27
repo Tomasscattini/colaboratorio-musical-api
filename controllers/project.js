@@ -1,8 +1,12 @@
 const Author = require('../models/Author');
 const Project = require('../models/Project');
 
+const { calculatePagination, calculateSkips } = require('../utils/helpers');
+
 exports.getProjectsProcess = async (req, res) => {
-    // const { currentPage = 1, pageSize = 10 } = req.query;
+    const { pageSize = 10, currentPage = 1 } = req.query;
+    const skips = calculateSkips(parseInt(pageSize), parseInt(currentPage));
+
     const workStatusOptions = {
         0: 'composing',
         1: 'published'
@@ -11,10 +15,13 @@ exports.getProjectsProcess = async (req, res) => {
     const filters = [{ privacyStatus: 'public' }];
     if (status && status !== '-1') filters.push({ workStatus: workStatusOptions[status] });
 
-    const projects = await Project.find({ $and: filters });
+    const totals = await Project.countDocuments({ $and: filters });
+    const projects = await Project.find({ $and: filters }).skip(skips).limit(parseInt(pageSize));
     if (!projects) return res.status(404).send({ message: 'Projects not found' });
 
-    res.status(200).send({ documents: projects, totals: 0, pagination: {} });
+    const pagination = calculatePagination(parseInt(pageSize), parseInt(currentPage), parseInt(totals));
+
+    res.status(200).send({ documents: projects, totals, pagination });
 };
 
 exports.getProjectProcess = async (req, res) => {
