@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const Author = require('../models/Author');
+const Project = require('../models/Project');
 const User = require('../models/User');
 const passport = require('../config/passport');
 // const { confirmationEmail } = require('../config/nodemailer');
@@ -56,7 +57,7 @@ exports.signupProcess = async (req, res) => {
         lastName
     });
     // await confirmationEmail(email, id);
-    res.status(201).json({ message: 'User created' });
+    res.status(201).json({ message: 'User successfully created' });
 };
 
 // exports.confirmSignupProcess = async (req, res, next) => {
@@ -87,4 +88,19 @@ exports.changePasswordProcess = async (req, res) => {
 exports.logoutProcess = (req, res) => {
     req.logout();
     res.status(200).json({ message: 'User logged out' });
+};
+
+exports.deleteAccountProcess = async (req, res) => {
+    const authUserId = req.user?.id;
+    const { deletedata } = req.query;
+
+    const deletedUser = await User.findByIdAndDelete(authUserId);
+    if (!deletedUser) res.status(404).json({ message: 'User not found' });
+
+    if (deletedata) {
+        const deletedAuthor = await Author.findOneAndDelete({ userId: deletedUser.id });
+        await Project.deleteMany({ authorId: deletedAuthor.id });
+    }
+
+    res.status(200).json({ message: 'Account successfully deleted' });
 };
