@@ -7,3 +7,4 @@
 -   Feature: Add delete account.
 -   Feature: Implement pagination.
 -   Feature: Return author and user role on Login and Signup.
+-   Feature: Implement JWT.

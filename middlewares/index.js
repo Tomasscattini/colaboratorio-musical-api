@@ -1,8 +1,9 @@
+const passport = require('passport');
+
 exports.catchErrs = (ctl) => (req, res, next) => ctl(req, res).catch(next);
 
 exports.isAuth = (req, res, next) => {
-    if (req.isAuthenticated()) return next();
-    return res.status(401).json({ message: 'You must login' });
+    passport.authenticate('jwt', { session: false })(req, res, next);
 };
 
 exports.checkRole = (role) => (req, res, next) => {

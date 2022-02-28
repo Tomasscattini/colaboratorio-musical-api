@@ -1,13 +1,13 @@
 require('dotenv').config();
 
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const express = require('express');
 const mongoose = require('mongoose');
 const logger = require('morgan');
 const path = require('path');
 const cors = require('cors');
-const passport = require('./config/passport');
+// const passport = require('./config/passport');
 
 const DBConnection = process.env.DB_ADDRESS || 'mongodb://localhost/colaboratorio-musical';
 
@@ -29,7 +29,7 @@ const app = express();
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+// app.use(cookieParser());
 
 // Static files
 
@@ -42,7 +42,7 @@ require('./config/session')(app);
 
 app.use(
     cors({
-        origin: [process.env.FRONTEND_URL],
+        origin: process.env.FRONTEND_URL,
         credentials: true
     })
 );

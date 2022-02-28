@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const Author = require('../models/Author');
 const Project = require('../models/Project');
 const User = require('../models/User');
@@ -16,13 +17,15 @@ exports.loginProcess = (req, res, next) => {
             return res.status(401).json({ ...failureDetails, type: 'all' });
         }
 
-        req.login(user, async (err) => {
+        req.login(user, { session: false }, async (err) => {
             if (err) {
                 return res.status(500).json({ message: 'Something went wrong authenticating user', type: 'server' });
             }
+            const body = { _id: user._id, email: user.email };
+            const token = jwt.sign({ user: body }, process.env.JWT_SECRET);
             const { id, role } = user;
             const author = await Author.findOne({ userId: id });
-            res.status(200).json({ ...author?._doc, role });
+            res.status(200).json({ ...author?._doc, role, accessToken: token });
         });
     })(req, res, next);
 };
@@ -72,7 +75,7 @@ exports.signupProcess = async (req, res) => {
 // };
 
 exports.changePasswordProcess = async (req, res) => {
-    const id = req.user.id;
+    const id = req.user._id;
     let { password } = await User.findById(id);
     const { newPassword, oldPassword } = req.body;
     if (!oldPassword || !newPassword) {

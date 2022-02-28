@@ -2,6 +2,8 @@ const User = require('../models/User');
 const { compareSync } = require('bcrypt');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const JWTstrategy = require('passport-jwt').Strategy;
+const ExtractJWT = require('passport-jwt').ExtractJwt;
 
 // *====================
 // *======  LOCAL ======
@@ -21,6 +23,22 @@ passport.use(
                 done(null, user);
             } catch (error) {
                 console.log(error);
+                done(error);
+            }
+        }
+    )
+);
+
+passport.use(
+    new JWTstrategy(
+        {
+            secretOrKey: process.env.JWT_SECRET,
+            jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken()
+        },
+        async (token, done) => {
+            try {
+                return done(null, token.user);
+            } catch (error) {
                 done(error);
             }
         }
